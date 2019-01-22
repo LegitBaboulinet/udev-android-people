@@ -14,6 +14,7 @@ import com.example.udev.classes.DatabaseHelper
 import com.example.udev.classes.Person
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
+import java.lang.NullPointerException
 
 class MainActivity : AppCompatActivity() {
 
@@ -41,7 +42,7 @@ class MainActivity : AppCompatActivity() {
 
         // Création de la connexion avec RetroFit
         retroFit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.2:8080/WebServices/api/")
+            .baseUrl("http://192.168.1.7:8080/WebServices/api/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
@@ -98,17 +99,27 @@ class MainActivity : AppCompatActivity() {
                 // Récupération de la base de donneés
                 var database: SQLiteDatabase = databaseHelper.writableDatabase
 
-                // Appel de l'activité de liste de personnes
-                startActivity(
-                    Intent(uniqueButton.context, PersonActivity::class.java)
-                        .putExtra(
-                            "Person",
-                            Person(
-                                response.body()?.firstName,
-                                response.body()?.lastName
+                try {
+                    // Appel de l'activité de liste de personnes
+                    startActivity(
+                        Intent(uniqueButton.context, PersonActivity::class.java)
+                            .putExtra(
+                                "Person",
+                                Person(
+                                    response.body()?.firstName,
+                                    response.body()?.lastName
+                                )
                             )
+                    )
+                } catch (e: NullPointerException) {
+                    var toast: Toast =
+                        Toast.makeText(
+                            listButton.context,
+                            "Impossible d'obtenir une réponse correcte du serveur",
+                            Toast.LENGTH_LONG
                         )
-                )
+                    toast.show()
+                }
 
                 // Réactivation du bouton 'Unique'
                 uniqueButton.isEnabled = true
@@ -153,14 +164,28 @@ class MainActivity : AppCompatActivity() {
                 // Récupération de la base de donneés
                 var database: SQLiteDatabase = databaseHelper.writableDatabase
 
-                // Appel de l'activité de liste de personnes
-                startActivity(
-                    Intent(listButton.context, PeopleActivity::class.java)
-                        .putExtra(
-                            "People",
-                            ArrayList<Person>(response.body())
+                try {
+
+                    // Insertion des personnes dans la base de données
+                    databaseHelper.insertPeople(ArrayList<Person>(response.body()), database)
+
+                    // Appel de l'activité de liste de personnes
+                    startActivity(
+                        Intent(listButton.context, PeopleActivity::class.java)
+                            .putExtra(
+                                "People",
+                                ArrayList<Person>(response.body())
+                            )
+                    )
+                } catch (e: NullPointerException) {
+                    var toast: Toast =
+                        Toast.makeText(
+                            listButton.context,
+                            "Impossible d'obtenir une réponse correcte du serveur",
+                            Toast.LENGTH_LONG
                         )
-                )
+                    toast.show()
+                }
 
                 // Réactivation du bouton 'Unique'
                 listButton.isEnabled = true
@@ -170,7 +195,6 @@ class MainActivity : AppCompatActivity() {
              * En cas d'échec de la requête
              */
             override fun onFailure(call: Call<List<Person>>, t: Throwable) {
-
                 var toast: Toast =
                     Toast.makeText(listButton.context, "Impossible de contacter le serveur", Toast.LENGTH_LONG)
                 toast.show()
